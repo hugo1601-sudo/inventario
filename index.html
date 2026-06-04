@@ -221,6 +221,58 @@
     .no-results { text-align: center; padding: 3rem 1rem; color: var(--text-secondary); font-size: 14px; }
     .no-results i { font-size: 28px; display: block; margin-bottom: 8px; }
 
+    /* Download buttons */
+    .dl-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 0 14px; height: 36px; white-space: nowrap;
+      background: #1a1a2e; color: #e2c94e;
+      border: none; border-radius: var(--radius-md);
+      font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .dl-btn:hover { background: #26215C; }
+    .dl-btn-xls { background: #1a3a1a; color: #8fd68f; }
+    .dl-btn-xls:hover { background: #1f481f; }
+
+    /* Report table */
+    .report-day { margin-bottom: 24px; }
+    .report-day-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px; padding: 0 2px;
+    }
+    .report-day-title {
+      font-size: 13px; font-weight: 700; color: var(--text-primary);
+      letter-spacing: 0.03em;
+    }
+    .report-day-count {
+      font-size: 11px; color: var(--text-secondary);
+      background: var(--bg-secondary); padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .report-table-wrap { overflow-x: auto; border-radius: var(--radius-md); border: 0.5px solid var(--border); }
+    table.report-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px; background: var(--bg-primary);
+    }
+    table.report-table thead tr {
+      background: var(--bg-secondary);
+    }
+    table.report-table th {
+      text-align: left; padding: 9px 14px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--text-secondary);
+      border-bottom: 0.5px solid var(--border); white-space: nowrap;
+    }
+    table.report-table td {
+      padding: 9px 14px; border-bottom: 0.5px solid var(--border);
+      color: var(--text-primary); vertical-align: middle;
+    }
+    table.report-table tr:last-child td { border-bottom: none; }
+    table.report-table tr:hover td { background: var(--bg-secondary); }
+    .td-code { font-family: monospace; font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+    .td-dif { font-size: 11px; color: var(--text-secondary); font-style: italic; }
+    .td-hora { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+
     .err-box {
       background: var(--red-bg); border: 0.5px solid #F09595;
       border-radius: var(--radius-md); padding: 12px 16px;
@@ -267,6 +319,7 @@
     <button class="tab active" onclick="showTab('scan',this)"><i class="ti ti-qrcode"></i> Escanear</button>
     <button class="tab" onclick="showTab('log',this)"><i class="ti ti-history"></i> Historial</button>
     <button class="tab" onclick="showTab('inv',this)"><i class="ti ti-packages"></i> Inventario</button>
+    <button class="tab" onclick="showTab('report',this)"><i class="ti ti-table"></i> Reportes</button>
   </div>
 
   <!-- SCAN TAB -->
@@ -283,10 +336,15 @@
           <label>Operador</label>
           <select id="operador-select">
             <option value="">Seleccionar...</option>
+            <option>Camilo</option>
+            <option>Cristóbal</option>
+            <option>Daniel</option>
+            <option>Diego</option>
+            <option>Gonzalo</option>
+            <option>Hugo</option>
+            <option>Italo</option>
             <option>Matías</option>
-            <option>Lucía</option>
-            <option>Tomás</option>
-            <option>Valentina</option>
+            <option>Raúl</option>
           </select>
         </div>
         <button class="search-btn" onclick="buscarArticulo()">
@@ -327,8 +385,11 @@
     <div class="filter-row">
       <select id="filter-op" onchange="renderLog()">
         <option value="">Todos los operadores</option>
-        <option>Matías</option><option>Lucía</option>
-        <option>Tomás</option><option>Valentina</option>
+        <option>Camilo</option><option>Cristóbal</option>
+        <option>Daniel</option><option>Diego</option>
+        <option>Gonzalo</option><option>Hugo</option>
+        <option>Italo</option><option>Matías</option>
+        <option>Raúl</option>
       </select>
       <select id="filter-tipo" onchange="renderLog()">
         <option value="">Egresos y reingresos</option>
@@ -340,7 +401,28 @@
     <div id="log-list"></div>
   </div>
 
-  <!-- INV TAB -->
+  <!-- REPORT TAB -->
+  <div id="tab-report" class="tab-content">
+    <div class="filter-row" style="align-items:center;">
+      <select id="report-filter-op" onchange="renderReport()">
+        <option value="">Todos los operadores</option>
+        <option>Camilo</option><option>Cristóbal</option>
+        <option>Daniel</option><option>Diego</option>
+        <option>Gonzalo</option><option>Hugo</option>
+        <option>Italo</option><option>Matías</option>
+        <option>Raúl</option>
+      </select>
+      <select id="report-filter-tipo" onchange="renderReport()">
+        <option value="">Egresos y reingresos</option>
+        <option value="egreso">Solo egresos</option>
+        <option value="regreso">Solo reingresos</option>
+      </select>
+      <button class="dl-btn" onclick="descargarCSV()"><i class="ti ti-file-type-csv"></i> CSV</button>
+      <button class="dl-btn dl-btn-xls" onclick="descargarExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+    </div>
+    <div id="report-container"></div>
+  </div>
+
   <div id="tab-inv" class="tab-content">
     <div class="filter-row">
       <select id="filter-item" onchange="renderInventario()"><option value="">Todos los items</option></select>
@@ -481,6 +563,7 @@
     el.classList.add('active');
     if (name==='log') renderLog();
     if (name==='inv') renderInventario();
+    if (name==='report') renderReport();
   }
 
   function buscarArticulo() {
@@ -612,6 +695,114 @@
         <div class="inv-cant">x${i.cantidad}</div>
         <div><span class="badge ${i.estado==='disponible'?'badge-green':'badge-amber'}">${i.estado==='disponible'?'Disponible':'En uso'}</span></div>
       </div>`).join('');
+  }
+
+  function getFilteredLog() {
+    const fOp   = document.getElementById('report-filter-op')?.value || '';
+    const fTipo = document.getElementById('report-filter-tipo')?.value || '';
+    let entries = [...log].sort((a,b) => new Date(b.ts) - new Date(a.ts));
+    if (fOp)   entries = entries.filter(l=>l.operador===fOp);
+    if (fTipo) entries = entries.filter(l=>l.tipo===fTipo);
+    return entries;
+  }
+
+  function renderReport() {
+    const entries = getFilteredLog();
+    const container = document.getElementById('report-container');
+    if (!entries.length) {
+      container.innerHTML = '<div class="no-results"><i class="ti ti-table"></i>Sin movimientos registrados</div>';
+      return;
+    }
+    // Group by date
+    const byDay = {};
+    entries.forEach(e => {
+      if (!byDay[e.fecha]) byDay[e.fecha] = [];
+      byDay[e.fecha].push(e);
+    });
+    const days = Object.keys(byDay); // already sorted desc by log order
+    container.innerHTML = days.map(fecha => {
+      const rows = byDay[fecha];
+      const rowsHtml = rows.map(e => `
+        <tr>
+          <td class="td-hora">${e.hora}</td>
+          <td class="td-code">${e.codigo}</td>
+          <td>
+            <div style="font-weight:500;">${e.nombre}</div>
+            ${e.diferenciador ? `<div class="td-dif">${e.diferenciador}</div>` : ''}
+          </td>
+          <td><span class="badge ${e.tipo==='egreso'?'badge-red':'badge-green'}">${e.tipo==='egreso'?'Egreso':'Reingreso'}</span></td>
+          <td>${e.operador}</td>
+        </tr>`).join('');
+      return `
+        <div class="report-day">
+          <div class="report-day-header">
+            <span class="report-day-title"><i class="ti ti-calendar-event" style="margin-right:6px;"></i>${fecha}</span>
+            <span class="report-day-count">${rows.length} movimiento${rows.length!==1?'s':''}</span>
+          </div>
+          <div class="report-table-wrap">
+            <table class="report-table">
+              <thead><tr>
+                <th>Hora</th><th>Código</th><th>Artículo</th><th>Tipo</th><th>Operador</th>
+              </tr></thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function descargarCSV() {
+    const entries = getFilteredLog();
+    if (!entries.length) { alert('No hay movimientos para exportar.'); return; }
+    const headers = ['Fecha','Hora','Código','Artículo','Diferenciador','Tipo','Operador'];
+    const rows = entries.map(e => [
+      e.fecha, e.hora, e.codigo, e.nombre, e.diferenciador||'',
+      e.tipo==='egreso'?'Egreso':'Reingreso', e.operador
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'CumpleGamer_Movimientos_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function descargarExcel() {
+    const entries = getFilteredLog();
+    if (!entries.length) { alert('No hay movimientos para exportar.'); return; }
+    const headers = ['Fecha','Hora','Código','Artículo','Diferenciador','Tipo','Operador'];
+    const rows = entries.map(e => [
+      e.fecha, e.hora, e.codigo, e.nombre, e.diferenciador||'',
+      e.tipo==='egreso'?'Egreso':'Reingreso', e.operador
+    ]);
+    // Build XML SpreadsheetML (opens in Excel/Sheets without extra libs)
+    const xmlRows = [headers, ...rows].map(row =>
+      '<Row>' + row.map(v =>
+        `<Cell><Data ss:Type="String">${String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</Data></Cell>`
+      ).join('') + '</Row>'
+    ).join('');
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="h"><Font ss:Bold="1"/><Interior ss:Color="#1a1a2e" ss:Pattern="Solid"/><Font ss:Color="#e2c94e" ss:Bold="1"/></Style>
+  </Styles>
+  <Worksheet ss:Name="Movimientos">
+    <Table>${xmlRows}</Table>
+  </Worksheet>
+</Workbook>`;
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'CumpleGamer_Movimientos_' + new Date().toISOString().slice(0,10) + '.xls';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   loadStorage();
