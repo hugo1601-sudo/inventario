@@ -161,6 +161,52 @@
     .cam-status { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.55); color:#fff; font-size:12px; text-align:center; padding:7px; }
     .cam-status.found { background:rgba(29,158,117,0.85); font-weight:600; }
 
+    /* Eventos */
+    .ev-toolbar { display:flex; gap:8px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+    .ev-toolbar select { flex:1; min-width:160px; height:36px; padding:0 10px; border:0.5px solid var(--border-md); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); font-size:13px; }
+    .ev-card { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:10px; cursor:pointer; transition:border-color .15s; }
+    .ev-card:hover { border-color:#e2c94e; }
+    .ev-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .ev-card-fecha { font-size:11px; font-weight:600; letter-spacing:0.05em; color:var(--text-secondary); margin-bottom:2px; }
+    .ev-card-nombre { font-size:15px; font-weight:600; color:var(--text-primary); }
+    .ev-card-festejado { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+    .ev-card-pack { font-size:12px; color:var(--text-secondary); margin-top:1px; font-style:italic; }
+    .ev-card-prog { display:flex; align-items:center; gap:8px; margin-top:10px; }
+    .ev-mini-bar { flex:1; height:5px; background:var(--bg-tertiary); border-radius:3px; overflow:hidden; }
+    .ev-mini-fill { height:100%; background:#1D9E75; border-radius:3px; transition:width .3s; }
+    .ev-mini-label { font-size:11px; color:var(--text-secondary); white-space:nowrap; }
+    .badge-pagado    { background:#EAF3DE; color:#3B6D11; }
+    .badge-pendiente { background:#FAEEDA; color:#854F0B; }
+    .badge-bloqueado { background:#E6F1FB; color:#185FA5; }
+    .ev-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200; }
+    .ev-modal-backdrop.show { display:block; }
+    .ev-modal { display:none; position:fixed; bottom:0; left:0; right:0; max-height:92vh; background:var(--bg-primary); border-radius:var(--radius-lg) var(--radius-lg) 0 0; z-index:201; overflow-y:auto; padding:20px 16px 40px; }
+    .ev-modal.show { display:block; }
+    .ev-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:14px; }
+    .ev-modal-titulo { font-size:16px; font-weight:600; color:var(--text-primary); }
+    .ev-modal-sub { font-size:13px; color:var(--text-secondary); margin-top:3px; }
+    .ev-modal-close { background:var(--bg-secondary); border:0.5px solid var(--border-md); border-radius:var(--radius-md); padding:7px 10px; cursor:pointer; color:var(--text-secondary); font-size:16px; flex-shrink:0; }
+    .ev-modal-close:hover { color:var(--text-primary); }
+    .ev-progress-wrap { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .ev-progress-bar { flex:1; height:8px; background:var(--bg-tertiary); border-radius:4px; overflow:hidden; }
+    .ev-progress-fill { height:100%; background:#1D9E75; border-radius:4px; transition:width .4s; }
+    .ev-progress-label { font-size:12px; color:var(--text-secondary); white-space:nowrap; }
+    .ev-operador-row { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+    .ev-check-item { background:var(--bg-secondary); border-radius:var(--radius-md); padding:11px 12px; display:flex; align-items:center; gap:10px; margin-bottom:6px; border:0.5px solid var(--border); }
+    .ev-check-item.fuera { border-color:#EF9F27; background:var(--amber-bg); }
+    .ev-check-item.completo { border-color:#1D9E75; background:var(--green-bg); opacity:0.75; }
+    .ev-check-icon { width:30px; height:30px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; background:var(--bg-tertiary); color:var(--text-secondary); }
+    .ev-check-icon.fuera { background:var(--amber-bg); color:var(--amber-text); }
+    .ev-check-icon.completo { background:var(--green-bg); color:var(--green-text); }
+    .ev-check-info { flex:1; min-width:0; }
+    .ev-check-nombre { font-size:13px; font-weight:500; color:var(--text-primary); }
+    .ev-check-tipo { font-size:11px; color:var(--text-secondary); }
+    .ev-check-btns { display:flex; gap:5px; flex-shrink:0; }
+    .ev-btn-e { padding:6px 11px; background:var(--red-bg); color:var(--red-text); border:none; border-radius:var(--radius-md); font-size:12px; font-weight:500; cursor:pointer; }
+    .ev-btn-e:hover { filter:brightness(0.93); }
+    .ev-btn-r { padding:6px 11px; background:var(--green-bg); color:var(--green-text); border:none; border-radius:var(--radius-md); font-size:12px; font-weight:500; cursor:pointer; }
+    .ev-btn-r:hover { filter:brightness(0.93); }
+
     .qr-toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
     .qr-search { flex:1; min-width:180px; height:36px; padding:0 12px; border:0.5px solid var(--border-md); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); font-size:13px; }
     .qr-search:focus { outline:none; border-color:#e2c94e; box-shadow:0 0 0 2px rgba(226,201,78,0.2); }
@@ -211,6 +257,7 @@
     <button class="tab" onclick="showTab('log',this)"><i class="ti ti-history"></i> Historial</button>
     <button class="tab" onclick="showTab('inv',this)"><i class="ti ti-packages"></i> Inventario</button>
     <button class="tab" onclick="showTab('report',this)"><i class="ti ti-table"></i> Reportes</button>
+    <button class="tab" onclick="showTab('eventos',this)"><i class="ti ti-calendar-event"></i> Eventos</button>
     <button class="tab" onclick="showTab('qr',this)"><i class="ti ti-qrcode"></i> QR</button>
   </div>
 
@@ -328,6 +375,47 @@
     </div>
     <div id="report-container"></div>
   </div>
+  <!-- EVENTOS -->
+  <div id="tab-eventos" class="tab-content">
+    <div class="ev-toolbar">
+      <select id="ev-filter-estado" onchange="renderEventos()">
+        <option value="">Todos los estados</option>
+        <option value="Pagado">Pagado</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="Bloqueado">Bloqueado</option>
+      </select>
+      <button class="dl-btn" onclick="cargarEventos(true)"><i class="ti ti-refresh"></i> Actualizar</button>
+    </div>
+    <div id="ev-list"></div>
+
+    <!-- Modal checklist evento -->
+    <div id="ev-modal-backdrop" class="ev-modal-backdrop" onclick="cerrarEventoModal()"></div>
+    <div id="ev-modal" class="ev-modal">
+      <div class="ev-modal-header">
+        <div>
+          <div class="ev-modal-titulo" id="ev-modal-titulo"></div>
+          <div class="ev-modal-sub" id="ev-modal-sub"></div>
+        </div>
+        <button class="ev-modal-close" onclick="cerrarEventoModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="ev-progress-wrap">
+        <div class="ev-progress-bar"><div class="ev-progress-fill" id="ev-progress-fill"></div></div>
+        <div class="ev-progress-label" id="ev-progress-label"></div>
+      </div>
+      <div class="ev-operador-row">
+        <label style="font-size:12px;color:var(--text-secondary);margin-right:8px;">Operador:</label>
+        <select id="ev-operador" style="flex:1;height:34px;padding:0 10px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);font-size:13px;">
+          <option value="">Seleccionar...</option>
+          <option>Camilo</option><option>Cristóbal</option><option>Daniel</option>
+          <option>Diego</option><option>Gonzalo</option><option>Hugo</option>
+          <option>Italo</option><option>Matías</option><option>Raúl</option>
+        </select>
+      </div>
+      <div class="section-title" style="margin-top:12px;">Artículos del evento</div>
+      <div id="ev-checklist"></div>
+    </div>
+  </div>
+
   <!-- QR -->
   <div id="tab-qr" class="tab-content">
     <div class="qr-toolbar">
@@ -372,37 +460,7 @@
   const fmtTime = d => d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   const esc     = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  // ── Firestore: escuchar movimientos en tiempo real ──────────────────────────
-  function initRealtimeListener() {
-    const q = query(collection(db, 'movimientos'), orderBy('ts', 'desc'));
-    onSnapshot(q,
-      snapshot => {
-        log = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
-        // reconstruir statusMap desde el log
-        statusMap = {};
-        // recorrer de más antiguo a más nuevo para que el último estado gane
-        [...log].reverse().forEach(e => {
-          statusMap[e.codigo] = e.tipo === 'egreso' ? 'en_uso' : 'disponible';
-        });
-        // aplicar estados al inventario
-        inventory.forEach(i => { i.estado = statusMap[i.codigo] || 'disponible'; });
-        updateStats();
-        if (activeTab === 'log')    renderLog();
-        if (activeTab === 'report') renderReport();
-        if (activeTab === 'inv')    renderInventario();
-        // actualizar resultado visible si hay un artículo buscado
-        if (foundItem) {
-          foundItem.estado = statusMap[foundItem.codigo] || 'disponible';
-          refreshResultBadge();
-        }
-        setConnStatus(true);
-      },
-      err => {
-        console.error('Firestore error:', err);
-        setConnStatus(false);
-      }
-    );
-  }
+  // ── Firestore: escuchar movimientos en tiempo real (definido más abajo junto a eventos) ──
 
   function setConnStatus(online) {
     const dot   = document.getElementById('conn-dot');
@@ -604,12 +662,7 @@
     camAnimFrame = requestAnimationFrame(escanearFrame);
   }
 
-  // Detener cámara al cambiar de tab
-  const _origShowTab = window.showTab;
-  window.showTab = function(name, el) {
-    if (name !== 'scan') detenerCamara();
-    _origShowTab(name, el);
-  };
+  // Detener cámara al cambiar de tab — manejado en la versión final de showTab
 
   window.buscarArticulo = function() {
     const codigo = document.getElementById('codigo-input').value.trim().toUpperCase();
@@ -896,6 +949,244 @@
 
   window.imprimirQRs = function() { window.print(); };
 
+  const API_EVENTOS = 'https://script.google.com/macros/s/AKfycbydMA72LEOSrrc0mzjoWuJcsMALofkZ-iCuVffhzgyb9WDpRSPIpH5s5ToYydKbDD4J/exec';
+
+  let eventos       = [];
+  let eventoActual  = null;
+  let evStatusMap   = {}; // { "RES-xxx__item__idx": 'egreso'|'regreso' }
+
+  // ── Cargar eventos desde Apps Script ──────────────────────────────────────
+  window.cargarEventos = async function(manual = false) {
+    const el = document.getElementById('ev-list');
+    if (!eventos.length || manual) {
+      el.innerHTML = '<div class="load-overlay"><span class="spinner spinner-dark"></span><br>Cargando eventos...</div>';
+      try {
+        const resp = await fetch(API_EVENTOS + '?sheet=eventos&_=' + Date.now());
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || 'Error desconocido');
+        eventos = data.eventos || [];
+      } catch(e) {
+        el.innerHTML = `<div class="err-box show">No se pudieron cargar los eventos: ${esc(e.message)}</div>`;
+        return;
+      }
+    }
+    renderEventos();
+  };
+
+  window.renderEventos = function() {
+    const filtroEstado = document.getElementById('ev-filter-estado')?.value || '';
+    let lista = eventos;
+    if (filtroEstado) lista = lista.filter(ev => ev.estado === filtroEstado);
+    const el = document.getElementById('ev-list');
+    if (!lista.length) {
+      el.innerHTML = '<div class="no-results"><i class="ti ti-calendar-off"></i>Sin eventos para mostrar</div>';
+      return;
+    }
+    el.innerHTML = lista.map(ev => {
+      const arts      = ev.articulos || [];
+      const total     = arts.reduce((s, a) => s + (a.cantidad || 1), 0);
+      const egresados = arts.reduce((s, a) => {
+        let cnt = 0;
+        for (let i = 0; i < (a.cantidad||1); i++) {
+          const k = evStatusMap[ev.id + '__' + a.item + '__' + i];
+          if (k === 'egreso') cnt++;
+        }
+        return s + cnt;
+      }, 0);
+      const reingresos = arts.reduce((s, a) => {
+        let cnt = 0;
+        for (let i = 0; i < (a.cantidad||1); i++) {
+          const k = evStatusMap[ev.id + '__' + a.item + '__' + i];
+          if (k === 'regreso') cnt++;
+        }
+        return s + cnt;
+      }, 0);
+      const pct   = total > 0 ? Math.round((reingresos / total) * 100) : 0;
+      const bCls  = ev.estado === 'Pagado' ? 'badge-pagado' : ev.estado === 'Bloqueado' ? 'badge-bloqueado' : 'badge-pendiente';
+      return `
+        <div class="ev-card" onclick="abrirEvento('${esc(ev.id)}')">
+          <div class="ev-card-top">
+            <div>
+              <div class="ev-card-fecha"><i class="ti ti-calendar" style="margin-right:4px;" aria-hidden="true"></i>${esc(ev.fecha)} · ${esc(ev.horaInicio)}${ev.horaTermino?' – '+esc(ev.horaTermino):''}</div>
+              <div class="ev-card-nombre">${esc(ev.cliente)}</div>
+              <div class="ev-card-festejado">🎂 ${esc(ev.festejado)}${ev.edad?' ('+esc(ev.edad)+' años)':''} · ${esc(ev.comuna||'')}</div>
+              <div class="ev-card-pack">${esc(ev.pack)}</div>
+            </div>
+            <span class="badge ${bCls}">${esc(ev.estado)}</span>
+          </div>
+          <div class="ev-card-prog">
+            <div class="ev-mini-bar"><div class="ev-mini-fill" style="width:${pct}%"></div></div>
+            <span class="ev-mini-label">${reingresos}/${total} artículos</span>
+            ${egresados > 0 ? `<span class="badge badge-amber" style="font-size:10px;">${egresados} fuera</span>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  };
+
+  // ── Abrir modal checklist ────────────────────────────────────────────────
+  window.abrirEvento = function(id) {
+    eventoActual = eventos.find(ev => ev.id === id);
+    if (!eventoActual) return;
+    document.getElementById('ev-modal-titulo').textContent = eventoActual.cliente + ' — ' + eventoActual.festejado;
+    document.getElementById('ev-modal-sub').textContent    = eventoActual.fecha + ' · ' + eventoActual.horaInicio + (eventoActual.horaTermino?' – '+eventoActual.horaTermino:'') + ' · ' + (eventoActual.direccion||'') + (eventoActual.comuna?', '+eventoActual.comuna:'');
+    document.getElementById('ev-modal-backdrop').classList.add('show');
+    document.getElementById('ev-modal').classList.add('show');
+    renderChecklist();
+  };
+
+  window.cerrarEventoModal = function() {
+    document.getElementById('ev-modal-backdrop').classList.remove('show');
+    document.getElementById('ev-modal').classList.remove('show');
+    eventoActual = null;
+    renderEventos();
+  };
+
+  function renderChecklist() {
+    if (!eventoActual) return;
+    const arts = eventoActual.articulos || [];
+    // Expandir artículos por cantidad (ej: 3x PS5 → 3 filas)
+    let filas = [];
+    arts.forEach(a => {
+      const qty = a.cantidad || 1;
+      for (let i = 0; i < qty; i++) {
+        filas.push({ ...a, _idx: i, _key: eventoActual.id + '__' + a.item + '__' + i });
+      }
+    });
+
+    const total      = filas.length;
+    const egresados  = filas.filter(f => evStatusMap[f._key] === 'egreso').length;
+    const reingresos = filas.filter(f => evStatusMap[f._key] === 'regreso').length;
+    const pct        = total > 0 ? Math.round((reingresos / total) * 100) : 0;
+
+    document.getElementById('ev-progress-fill').style.width  = pct + '%';
+    document.getElementById('ev-progress-label').textContent = reingresos + '/' + total + ' reingresan · ' + egresados + ' fuera';
+
+    const el = document.getElementById('ev-checklist');
+    if (!filas.length) {
+      el.innerHTML = '<div class="no-results">Sin artículos registrados para este evento</div>';
+      return;
+    }
+
+    el.innerHTML = filas.map(f => {
+      const st = evStatusMap[f._key] || 'disponible';
+      const itemCls  = st === 'egreso' ? 'fuera' : st === 'regreso' ? 'completo' : '';
+      const iconCls  = st === 'egreso' ? 'fuera' : st === 'regreso' ? 'completo' : '';
+      const iconChar = st === 'egreso' ? '<i class="ti ti-arrow-up-right" aria-hidden="true"></i>'
+                     : st === 'regreso'? '<i class="ti ti-check" aria-hidden="true"></i>'
+                     : '<i class="ti ti-circle-dashed" aria-hidden="true"></i>';
+      const label    = f._idx > 0 ? esc(f.item) + ' <span style="font-size:10px;color:var(--text-secondary);">#'+(f._idx+1)+'</span>' : esc(f.item);
+      const disE     = st === 'egreso'  ? 'btn-disabled' : '';
+      const disR     = st !== 'egreso'  ? 'btn-disabled' : '';
+      return `
+        <div class="ev-check-item ${itemCls}" id="evrow-${esc(f._key)}">
+          <div class="ev-check-icon ${iconCls}">${iconChar}</div>
+          <div class="ev-check-info">
+            <div class="ev-check-nombre">${label}</div>
+            <div class="ev-check-tipo">${esc(f.tipo||'')}</div>
+          </div>
+          <div class="ev-check-btns">
+            <button class="ev-btn-e ${disE}" onclick="registrarMovEvento('${f._key}','egreso')"><i class="ti ti-arrow-up-right" aria-hidden="true"></i> Salida</button>
+            <button class="ev-btn-r ${disR}" onclick="registrarMovEvento('${f._key}','regreso')"><i class="ti ti-arrow-down-left" aria-hidden="true"></i> Ingreso</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Registrar movimiento desde checklist ─────────────────────────────────
+  window.registrarMovEvento = async function(key, tipo) {
+    if (!eventoActual) return;
+    const operador = document.getElementById('ev-operador').value;
+    if (!operador) { alert('Seleccioná un operador antes de registrar.'); return; }
+
+    // key = "RES-xxx__item__idx"
+    const parts  = key.split('__');
+    const idRes  = parts[0];
+    const item   = parts.slice(1, -1).join('__');
+    const ahora  = now();
+
+    const entry = {
+      codigo:        key,
+      nombre:        item,
+      diferenciador: eventoActual.cliente + ' · ' + eventoActual.fecha,
+      tipo,
+      operador,
+      fecha:         fmtDate(ahora),
+      hora:          fmtTime(ahora),
+      ts:            ahora.toISOString(),
+      reingresado:   false,
+      eventoId:      idRes,
+      eventoCliente: eventoActual.cliente,
+      eventoFecha:   eventoActual.fecha
+    };
+
+    try {
+      if (tipo === 'regreso') {
+        const anterior = log.find(l => l.codigo === key && l.tipo === 'egreso' && !l.reingresado);
+        if (anterior?.firestoreId) {
+          await setDoc(doc(db, 'movimientos', anterior.firestoreId), { reingresado: true }, { merge: true });
+        }
+      }
+      await addDoc(collection(db, 'movimientos'), entry);
+      evStatusMap[key] = tipo;
+      renderChecklist();
+    } catch(e) {
+      alert('Error al guardar: ' + e.message);
+    }
+  };
+
+  // Sincronizar evStatusMap con Firestore al recibir snapshot
+  function patchEvStatusFromLog() {
+    evStatusMap = {};
+    // recorrer de más antiguo a más nuevo
+    [...log].reverse().forEach(l => {
+      if (l.eventoId) {
+        evStatusMap[l.codigo] = l.tipo;
+      }
+    });
+    if (activeTab === 'eventos') {
+      renderEventos();
+      if (eventoActual) renderChecklist();
+    }
+  }
+
+  // ── showTab (versión final con soporte de eventos y cámara) ─────────────
+  window.showTab = function(name, el) {
+    if (name !== 'scan') detenerCamara();
+    activeTab = name;
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('tab-'+name).classList.add('active');
+    el.classList.add('active');
+    if (name === 'log')     renderLog();
+    if (name === 'inv')     renderInventario();
+    if (name === 'report')  renderReport();
+    if (name === 'qr')      renderQR();
+    if (name === 'eventos') cargarEventos(false);
+  };
+
+  // ── Firestore listener (versión final con soporte de eventos) ───────────
+  function initRealtimeListener() {
+    const q = query(collection(db, 'movimientos'), orderBy('ts', 'desc'));
+    onSnapshot(q,
+      snapshot => {
+        log = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+        statusMap = {};
+        [...log].reverse().forEach(e => {
+          if (!e.eventoId) statusMap[e.codigo] = e.tipo === 'egreso' ? 'en_uso' : 'disponible';
+        });
+        inventory.forEach(i => { i.estado = statusMap[i.codigo] || 'disponible'; });
+        patchEvStatusFromLog();
+        updateStats();
+        if (activeTab === 'log')    renderLog();
+        if (activeTab === 'report') renderReport();
+        if (activeTab === 'inv')    renderInventario();
+        if (foundItem) { foundItem.estado = statusMap[foundItem.codigo] || 'disponible'; refreshResultBadge(); }
+        setConnStatus(true);
+      },
+      err => { console.error('Firestore error:', err); setConnStatus(false); }
+    );
+  }
+
   window.descargarCSV = function() {
     const entries = getFilteredLog();
     if (!entries.length) { alert('No hay movimientos para exportar.'); return; }
@@ -928,7 +1219,6 @@
   } else {
     initRealtimeListener();
     syncInventario(false);
-  }
-</script>
+  }</script>
 </body>
 </html>
