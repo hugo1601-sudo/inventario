@@ -311,7 +311,7 @@
 </div>
 
 <!-- QRCode.js -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -708,60 +708,79 @@
       return;
     }
     grid.innerHTML = items.map(i => `
-      <div class="qr-card" id="qrcard-${i.codigo}">
-        <canvas id="qrcanvas-${i.codigo}" width="148" height="148"></canvas>
+      <div class="qr-card">
+        <div id="qrdiv-${i.codigo}" style="width:148px;height:148px;"></div>
         <div class="qr-card-code">${esc(i.codigo)}</div>
         <div class="qr-card-name">${esc(i.nombre)}</div>
         ${i.diferenciador ? `<div class="qr-card-dif">${esc(i.diferenciador)}</div>` : ''}
-        <button class="qr-dl-btn" onclick="descargarQR('${esc(i.codigo)}','${esc(i.codigo)}')">
+        <button class="qr-dl-btn" onclick="descargarQR('${i.codigo.replace(/'/g,"\\'")}')">
           <i class="ti ti-download" aria-hidden="true"></i> Descargar PNG
         </button>
       </div>`).join('');
 
-    // Generar QR en cada canvas después del render
     requestAnimationFrame(() => {
       items.forEach(i => {
-        const canvas = document.getElementById('qrcanvas-'+i.codigo);
-        if (!canvas || typeof QRCode === 'undefined') return;
-        QRCode.toCanvas(canvas, i.codigo, {
-          width: 148, margin: 1,
-          color: { dark: '#1a1a2e', light: '#ffffff' }
-        }, err => { if(err) console.error('QR error', i.codigo, err); });
+        const container = document.getElementById('qrdiv-'+i.codigo);
+        if (!container || typeof QRCode === 'undefined') return;
+        container.innerHTML = '';
+        new QRCode(container, {
+          text: i.codigo,
+          width: 148,
+          height: 148,
+          colorDark: '#1a1a2e',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
       });
     });
   };
 
-  window.descargarQR = function(codigo, filename) {
-    const canvas = document.getElementById('qrcanvas-'+codigo);
-    if (!canvas) return;
-    // Canvas con padding y etiqueta
+  window.descargarQR = function(codigo) {
+    const container = document.getElementById('qrdiv-'+codigo);
+    if (!container) return;
+    const srcImg = container.querySelector('img') || container.querySelector('canvas');
+    if (!srcImg) return;
+
+    const item = inventory.find(i=>i.codigo===codigo);
+    const label1 = codigo;
+    const label2 = item ? item.nombre.substring(0,30) : '';
+    const label3 = item?.diferenciador ? item.diferenciador.substring(0,30) : '';
+
     const out = document.createElement('canvas');
+    const lineH = 16;
+    const lines = [label2, label3].filter(Boolean).length;
     out.width  = 200;
-    out.height = 240;
+    out.height = 180 + lineH * (lines + 1);
     const ctx = out.getContext('2d');
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,200,240);
-    ctx.drawImage(canvas, 26, 16, 148, 148);
-    ctx.fillStyle = '#1a1a2e';
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(codigo, 100, 182);
-    const item = inventory.find(i=>i.codigo===codigo);
-    if (item) {
+    ctx.fillRect(0,0,out.width,out.height);
+
+    const drawQR = (src) => {
+      ctx.drawImage(src, 26, 12, 148, 148);
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(label1, 100, 174);
       ctx.font = '11px sans-serif';
-      ctx.fillStyle = '#555';
-      ctx.fillText(item.nombre.substring(0,28), 100, 198);
-      if (item.diferenciador) ctx.fillText(item.diferenciador.substring(0,28), 100, 213);
+      ctx.fillStyle = '#444';
+      if (label2) ctx.fillText(label2, 100, 174 + lineH);
+      if (label3) { ctx.fillStyle = '#888'; ctx.fillText(label3, 100, 174 + lineH*2); }
+      const a = document.createElement('a');
+      a.download = 'QR_' + codigo + '.png';
+      a.href = out.toDataURL('image/png');
+      a.click();
+    };
+
+    if (srcImg.tagName === 'IMG') {
+      const img = new Image();
+      img.onload = () => drawQR(img);
+      img.src = srcImg.src;
+    } else {
+      drawQR(srcImg);
     }
-    const a = document.createElement('a');
-    a.download = 'QR_' + filename + '.png';
-    a.href = out.toDataURL('image/png');
-    a.click();
   };
 
-  window.imprimirQRs = function() {
-    window.print();
-  };
+  window.imprimirQRs = function() { window.print(); };
 
   window.descargarCSV = function() {
     const entries = getFilteredLog();
