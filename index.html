@@ -144,6 +144,23 @@
     .pulse { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
+    /* Camera scanner */
+    .cam-btn { height:38px; padding:0 16px; background:var(--bg-secondary); color:var(--text-primary); border:0.5px solid var(--border-md); border-radius:var(--radius-md); font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+    .cam-btn:hover { background:var(--bg-tertiary); }
+    .cam-btn.active { background:#1a1a2e; color:#e2c94e; border-color:#1a1a2e; }
+    .cam-overlay { display:none; margin-top:14px; border-radius:var(--radius-md); overflow:hidden; position:relative; background:#000; }
+    .cam-overlay.show { display:block; }
+    .cam-overlay video { width:100%; display:block; max-height:280px; object-fit:cover; }
+    .cam-overlay canvas { display:none; }
+    .cam-aim { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:200px; height:200px; pointer-events:none; }
+    .cam-aim::before, .cam-aim::after { content:''; position:absolute; width:36px; height:36px; border-color:#e2c94e; border-style:solid; }
+    .cam-aim::before { top:0; left:0; border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
+    .cam-aim::after  { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
+    .cam-aim-tr { position:absolute; top:0; right:0; width:36px; height:36px; border-top:3px solid #e2c94e; border-right:3px solid #e2c94e; border-radius:0 4px 0 0; }
+    .cam-aim-bl { position:absolute; bottom:0; left:0; width:36px; height:36px; border-bottom:3px solid #e2c94e; border-left:3px solid #e2c94e; border-radius:0 0 0 4px; }
+    .cam-status { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.55); color:#fff; font-size:12px; text-align:center; padding:7px; }
+    .cam-status.found { background:rgba(29,158,117,0.85); font-weight:600; }
+
     .qr-toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
     .qr-search { flex:1; min-width:180px; height:36px; padding:0 12px; border:0.5px solid var(--border-md); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); font-size:13px; }
     .qr-search:focus { outline:none; border-color:#e2c94e; box-shadow:0 0 0 2px rgba(226,201,78,0.2); }
@@ -222,7 +239,19 @@
             <option>Raúl</option>
           </select>
         </div>
+        <button class="cam-btn" id="cam-btn" onclick="toggleCamara()"><i class="ti ti-camera"></i> Cámara</button>
         <button class="search-btn" onclick="buscarArticulo()"><i class="ti ti-search"></i> Buscar</button>
+      </div>
+
+      <!-- Visor de cámara -->
+      <div class="cam-overlay" id="cam-overlay">
+        <video id="cam-video" autoplay playsinline muted></video>
+        <canvas id="cam-canvas"></canvas>
+        <div class="cam-aim">
+          <div class="cam-aim-tr"></div>
+          <div class="cam-aim-bl"></div>
+        </div>
+        <div class="cam-status" id="cam-status">Apuntá al QR del artículo</div>
       </div>
       <div id="scan-loading" class="load-overlay" style="display:none;">
         <span class="spinner spinner-dark"></span><br>Conectando con la planilla...
@@ -310,6 +339,8 @@
 
 </div>
 
+<!-- jsQR - lector QR desde cámara -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <!-- QRCode.js -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
 <script type="module">
@@ -495,6 +526,89 @@
     if (name==='inv')    renderInventario();
     if (name==='report') renderReport();
     if (name==='qr')     renderQR();
+  };
+
+  // ── Cámara QR ───────────────────────────────────────────────────────────────
+  let camStream = null;
+  let camAnimFrame = null;
+  let camCooldown = false;
+
+  window.toggleCamara = async function() {
+    const overlay = document.getElementById('cam-overlay');
+    const btn     = document.getElementById('cam-btn');
+    if (camStream) {
+      detenerCamara();
+      return;
+    }
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      const video = document.getElementById('cam-video');
+      video.srcObject = camStream;
+      await video.play();
+      overlay.classList.add('show');
+      btn.classList.add('active');
+      btn.innerHTML = '<i class="ti ti-camera-off"></i> Cerrar';
+      escanearFrame();
+    } catch(e) {
+      const errBox = document.getElementById('scan-err');
+      errBox.textContent = 'No se pudo acceder a la cámara: ' + (e.message || e);
+      errBox.classList.add('show');
+    }
+  };
+
+  function detenerCamara() {
+    if (camStream) { camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+    if (camAnimFrame) { cancelAnimationFrame(camAnimFrame); camAnimFrame = null; }
+    const video = document.getElementById('cam-video');
+    if (video) video.srcObject = null;
+    document.getElementById('cam-overlay')?.classList.remove('show');
+    const btn = document.getElementById('cam-btn');
+    if (btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="ti ti-camera"></i> Cámara'; }
+    document.getElementById('cam-status').textContent = 'Apuntá al QR del artículo';
+    document.getElementById('cam-status').classList.remove('found');
+  }
+
+  function escanearFrame() {
+    const video  = document.getElementById('cam-video');
+    const canvas = document.getElementById('cam-canvas');
+    const status = document.getElementById('cam-status');
+    if (!camStream || !video || video.readyState < 2) {
+      camAnimFrame = requestAnimationFrame(escanearFrame);
+      return;
+    }
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    if (!camCooldown && typeof jsQR !== 'undefined') {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const qr = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (qr && qr.data) {
+        camCooldown = true;
+        const codigo = qr.data.trim().toUpperCase();
+        status.textContent = '✓ Detectado: ' + codigo;
+        status.classList.add('found');
+        document.getElementById('codigo-input').value = codigo;
+        // vibrar si está disponible
+        if (navigator.vibrate) navigator.vibrate(120);
+        setTimeout(() => {
+          detenerCamara();
+          window.buscarArticulo();
+          camCooldown = false;
+        }, 600);
+        return;
+      }
+    }
+    camAnimFrame = requestAnimationFrame(escanearFrame);
+  }
+
+  // Detener cámara al cambiar de tab
+  const _origShowTab = window.showTab;
+  window.showTab = function(name, el) {
+    if (name !== 'scan') detenerCamara();
+    _origShowTab(name, el);
   };
 
   window.buscarArticulo = function() {
