@@ -143,6 +143,27 @@
     .realtime-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(255,255,255,0.5); }
     .pulse { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    .qr-toolbar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+    .qr-search { flex:1; min-width:180px; height:36px; padding:0 12px; border:0.5px solid var(--border-md); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); font-size:13px; }
+    .qr-search:focus { outline:none; border-color:#e2c94e; box-shadow:0 0 0 2px rgba(226,201,78,0.2); }
+    .qr-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:12px; }
+    .qr-card { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:16px 12px 12px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .qr-card canvas { border-radius:4px; display:block; }
+    .qr-card-code { font-family:monospace; font-size:10px; font-weight:600; color:var(--text-secondary); letter-spacing:0.07em; text-align:center; }
+    .qr-card-name { font-size:12px; font-weight:500; color:var(--text-primary); text-align:center; line-height:1.3; }
+    .qr-card-dif  { font-size:11px; color:var(--text-secondary); font-style:italic; text-align:center; }
+    .qr-dl-btn { display:flex; align-items:center; gap:4px; padding:5px 12px; background:var(--bg-secondary); border:0.5px solid var(--border-md); border-radius:var(--radius-md); font-size:11px; color:var(--text-secondary); cursor:pointer; margin-top:2px; }
+    .qr-dl-btn:hover { color:var(--text-primary); }
+    @media print {
+      .topbar,.stats,.tab-bar,.qr-toolbar,.qr-dl-btn,.dl-btn { display:none !important; }
+      #tab-scan,#tab-log,#tab-inv,#tab-report { display:none !important; }
+      #tab-qr { display:block !important; }
+      .qr-grid { grid-template-columns:repeat(4,1fr); gap:10px; }
+      .qr-card { break-inside:avoid; border:1px solid #bbb; padding:12px 8px 8px; }
+      body { background:#fff; }
+      .container { padding:8px; max-width:100%; }
+    }
   </style>
 </head>
 <body>
@@ -173,6 +194,7 @@
     <button class="tab" onclick="showTab('log',this)"><i class="ti ti-history"></i> Historial</button>
     <button class="tab" onclick="showTab('inv',this)"><i class="ti ti-packages"></i> Inventario</button>
     <button class="tab" onclick="showTab('report',this)"><i class="ti ti-table"></i> Reportes</button>
+    <button class="tab" onclick="showTab('qr',this)"><i class="ti ti-qrcode"></i> QR</button>
   </div>
 
   <!-- SCAN -->
@@ -277,9 +299,19 @@
     </div>
     <div id="report-container"></div>
   </div>
+  <!-- QR -->
+  <div id="tab-qr" class="tab-content">
+    <div class="qr-toolbar">
+      <input type="text" class="qr-search" id="qr-search" placeholder="Buscar artículo..." oninput="renderQR()">
+      <button class="dl-btn" onclick="imprimirQRs()"><i class="ti ti-printer"></i> Imprimir todos</button>
+    </div>
+    <div class="qr-grid" id="qr-grid"></div>
+  </div>
+
 </div>
 
-<!-- Firebase SDK -->
+<!-- QRCode.js -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -433,6 +465,7 @@
     const sel = document.getElementById('filter-item');
     sel.innerHTML = '<option value="">Todos los items</option>' +
       items.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    if (activeTab === 'qr') renderQR();
   }
 
   function updateStats() {
@@ -461,6 +494,7 @@
     if (name==='log')    renderLog();
     if (name==='inv')    renderInventario();
     if (name==='report') renderReport();
+    if (name==='qr')     renderQR();
   };
 
   window.buscarArticulo = function() {
@@ -659,6 +693,75 @@
   window.renderLog       = renderLog;
   window.renderInventario= renderInventario;
   window.renderReport    = renderReport;
+
+  window.renderQR = function() {
+    const q = (document.getElementById('qr-search')?.value || '').toLowerCase();
+    let items = inventory;
+    if (q) items = items.filter(i =>
+      i.codigo.toLowerCase().includes(q) ||
+      i.nombre.toLowerCase().includes(q) ||
+      (i.diferenciador||'').toLowerCase().includes(q)
+    );
+    const grid = document.getElementById('qr-grid');
+    if (!items.length) {
+      grid.innerHTML = '<div class="no-results" style="grid-column:1/-1"><i class="ti ti-qrcode"></i>Sin artículos para mostrar</div>';
+      return;
+    }
+    grid.innerHTML = items.map(i => `
+      <div class="qr-card" id="qrcard-${i.codigo}">
+        <canvas id="qrcanvas-${i.codigo}" width="148" height="148"></canvas>
+        <div class="qr-card-code">${esc(i.codigo)}</div>
+        <div class="qr-card-name">${esc(i.nombre)}</div>
+        ${i.diferenciador ? `<div class="qr-card-dif">${esc(i.diferenciador)}</div>` : ''}
+        <button class="qr-dl-btn" onclick="descargarQR('${esc(i.codigo)}','${esc(i.codigo)}')">
+          <i class="ti ti-download" aria-hidden="true"></i> Descargar PNG
+        </button>
+      </div>`).join('');
+
+    // Generar QR en cada canvas después del render
+    requestAnimationFrame(() => {
+      items.forEach(i => {
+        const canvas = document.getElementById('qrcanvas-'+i.codigo);
+        if (!canvas || typeof QRCode === 'undefined') return;
+        QRCode.toCanvas(canvas, i.codigo, {
+          width: 148, margin: 1,
+          color: { dark: '#1a1a2e', light: '#ffffff' }
+        }, err => { if(err) console.error('QR error', i.codigo, err); });
+      });
+    });
+  };
+
+  window.descargarQR = function(codigo, filename) {
+    const canvas = document.getElementById('qrcanvas-'+codigo);
+    if (!canvas) return;
+    // Canvas con padding y etiqueta
+    const out = document.createElement('canvas');
+    out.width  = 200;
+    out.height = 240;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,200,240);
+    ctx.drawImage(canvas, 26, 16, 148, 148);
+    ctx.fillStyle = '#1a1a2e';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(codigo, 100, 182);
+    const item = inventory.find(i=>i.codigo===codigo);
+    if (item) {
+      ctx.font = '11px sans-serif';
+      ctx.fillStyle = '#555';
+      ctx.fillText(item.nombre.substring(0,28), 100, 198);
+      if (item.diferenciador) ctx.fillText(item.diferenciador.substring(0,28), 100, 213);
+    }
+    const a = document.createElement('a');
+    a.download = 'QR_' + filename + '.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  };
+
+  window.imprimirQRs = function() {
+    window.print();
+  };
 
   window.descargarCSV = function() {
     const entries = getFilteredLog();
