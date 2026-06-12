@@ -344,6 +344,7 @@
   function setConnStatus(online) {
     const dot   = document.getElementById('conn-dot');
     const badge = document.getElementById('rt-badge');
+    if (!dot || !badge) return;
     if (online) {
       dot.className = 'conn-dot online';
       badge.innerHTML = '<span class="conn-dot online"></span> Tiempo real';
@@ -683,8 +684,15 @@
   };
 
   // ── Init ────────────────────────────────────────────────────────────────────
-  initRealtimeListener();
-  syncInventario(false);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initRealtimeListener();
+      syncInventario(false);
+    });
+  } else {
+    initRealtimeListener();
+    syncInventario(false);
+  }
 </script>
 </body>
 </html>
