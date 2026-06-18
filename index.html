@@ -420,8 +420,10 @@
   <div id="tab-qr" class="tab-content">
     <div class="qr-toolbar">
       <input type="text" class="qr-search" id="qr-search" placeholder="Buscar artículo..." oninput="renderQR()">
-      <button class="dl-btn" onclick="imprimirQRs()"><i class="ti ti-printer"></i> Imprimir todos</button>
+      <button class="dl-btn dl-btn-xls" onclick="descargarLoteQR()"><i class="ti ti-download"></i> Descargar lote PNG</button>
+      <button class="dl-btn" onclick="imprimirQRs()"><i class="ti ti-printer"></i> Hoja de etiquetas</button>
     </div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Formato etiqueta Niimbot D110 · 40 × 15 mm</div>
     <div class="qr-grid" id="qr-grid"></div>
   </div>
 
@@ -861,6 +863,86 @@
   window.renderInventario= renderInventario;
   window.renderReport    = renderReport;
 
+  // ── QR · formato Niimbot D110 40×15 mm ─────────────────────────────────
+  // A 8px/mm → 40mm=320px, 15mm=120px (renderizado a doble densidad: 640×240)
+  const QR_W = 640; // px canvas (2× para nitidez)
+  const QR_H = 240;
+  const QR_SIZE = 200; // tamaño del módulo QR dentro del canvas
+  const QR_MARGIN = 12; // margen izquierdo del QR
+
+  function buildEtiquetaCanvas(codigo, srcImg) {
+    const item   = inventory.find(i => i.codigo === codigo);
+    const nombre = item ? item.nombre : codigo;
+    const dif    = item ? (item.diferenciador || '') : '';
+
+    const c   = document.createElement('canvas');
+    c.width   = QR_W;
+    c.height  = QR_H;
+    const ctx = c.getContext('2d');
+
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, QR_W, QR_H);
+
+    // QR a la izquierda (cuadrado, centrado verticalmente)
+    const qrY = (QR_H - QR_SIZE) / 2;
+    if (srcImg) ctx.drawImage(srcImg, QR_MARGIN, qrY, QR_SIZE, QR_SIZE);
+
+    // Texto a la derecha
+    const textX  = QR_MARGIN + QR_SIZE + 18;
+    const textW  = QR_W - textX - 12;
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'middle';
+
+    // Código (monospace, pequeño, gris)
+    ctx.font      = 'bold 20px monospace';
+    ctx.fillStyle = '#888888';
+    ctx.fillText(codigo, textX, 52, textW);
+
+    // Nombre (bold, negro, tamaño adaptativo)
+    const fontSize = nombre.length > 18 ? 22 : 26;
+    ctx.font      = `bold ${fontSize}px sans-serif`;
+    ctx.fillStyle = '#1a1a2e';
+    // Wrap en 2 líneas si es largo
+    const words  = nombre.split(' ');
+    let line1 = '', line2 = '';
+    let tmp = '';
+    for (const w of words) {
+      const test = tmp ? tmp + ' ' + w : w;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      if (ctx.measureText(test).width > textW && tmp) { line1 = tmp; tmp = w; }
+      else { tmp = test; }
+    }
+    if (!line1) { line1 = tmp; line2 = ''; }
+    else { line2 = tmp; }
+
+    if (line2) {
+      ctx.fillText(line1, textX, 115, textW);
+      ctx.fillText(line2, textX, 150, textW);
+    } else {
+      ctx.fillText(line1, textX, 130, textW);
+    }
+
+    // Diferenciador (itálica, gris)
+    if (dif) {
+      ctx.font      = `italic 19px sans-serif`;
+      ctx.fillStyle = '#666666';
+      ctx.fillText(dif.substring(0, 28), textX, line2 ? 188 : 170, textW);
+    }
+
+    // Línea decorativa izquierda del texto
+    ctx.fillStyle = '#e2c94e';
+    ctx.fillRect(textX - 10, 20, 3, QR_H - 40);
+
+    return c;
+  }
+
+  function getQRSrc(codigo) {
+    const container = document.getElementById('qrdiv-' + codigo);
+    if (!container) return null;
+    return container.querySelector('img') || container.querySelector('canvas');
+  }
+
   window.renderQR = function() {
     const q = (document.getElementById('qr-search')?.value || '').toLowerCase();
     let items = inventory;
@@ -874,28 +956,29 @@
       grid.innerHTML = '<div class="no-results" style="grid-column:1/-1"><i class="ti ti-qrcode"></i>Sin artículos para mostrar</div>';
       return;
     }
+    // Tarjetas en proporción 40:15
     grid.innerHTML = items.map(i => `
-      <div class="qr-card">
-        <div id="qrdiv-${i.codigo}" style="width:148px;height:148px;"></div>
-        <div class="qr-card-code">${esc(i.codigo)}</div>
-        <div class="qr-card-name">${esc(i.nombre)}</div>
-        ${i.diferenciador ? `<div class="qr-card-dif">${esc(i.diferenciador)}</div>` : ''}
+      <div class="qr-card" style="flex-direction:row;align-items:center;gap:10px;padding:10px 12px;">
+        <div id="qrdiv-${i.codigo}" style="width:56px;height:56px;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="qr-card-code">${esc(i.codigo)}</div>
+          <div class="qr-card-name" style="text-align:left;">${esc(i.nombre)}</div>
+          ${i.diferenciador ? `<div class="qr-card-dif" style="text-align:left;">${esc(i.diferenciador)}</div>` : ''}
+        </div>
         <button class="qr-dl-btn" onclick="descargarQR('${i.codigo.replace(/'/g,"\\'")}')">
-          <i class="ti ti-download" aria-hidden="true"></i> Descargar PNG
+          <i class="ti ti-download" aria-hidden="true"></i>
         </button>
       </div>`).join('');
 
     requestAnimationFrame(() => {
       items.forEach(i => {
-        const container = document.getElementById('qrdiv-'+i.codigo);
+        const container = document.getElementById('qrdiv-' + i.codigo);
         if (!container || typeof QRCode === 'undefined') return;
         container.innerHTML = '';
         new QRCode(container, {
           text: i.codigo,
-          width: 148,
-          height: 148,
-          colorDark: '#1a1a2e',
-          colorLight: '#ffffff',
+          width: 56, height: 56,
+          colorDark: '#1a1a2e', colorLight: '#ffffff',
           correctLevel: QRCode.CorrectLevel.M
         });
       });
@@ -903,51 +986,138 @@
   };
 
   window.descargarQR = function(codigo) {
-    const container = document.getElementById('qrdiv-'+codigo);
-    if (!container) return;
-    const srcImg = container.querySelector('img') || container.querySelector('canvas');
-    if (!srcImg) return;
-
-    const item = inventory.find(i=>i.codigo===codigo);
-    const label1 = codigo;
-    const label2 = item ? item.nombre.substring(0,30) : '';
-    const label3 = item?.diferenciador ? item.diferenciador.substring(0,30) : '';
-
-    const out = document.createElement('canvas');
-    const lineH = 16;
-    const lines = [label2, label3].filter(Boolean).length;
-    out.width  = 200;
-    out.height = 180 + lineH * (lines + 1);
-    const ctx = out.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,out.width,out.height);
-
-    const drawQR = (src) => {
-      ctx.drawImage(src, 26, 12, 148, 148);
-      ctx.fillStyle = '#1a1a2e';
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(label1, 100, 174);
-      ctx.font = '11px sans-serif';
-      ctx.fillStyle = '#444';
-      if (label2) ctx.fillText(label2, 100, 174 + lineH);
-      if (label3) { ctx.fillStyle = '#888'; ctx.fillText(label3, 100, 174 + lineH*2); }
-      const a = document.createElement('a');
+    const src = getQRSrc(codigo);
+    if (!src) return;
+    const render = (imgEl) => {
+      const c   = buildEtiquetaCanvas(codigo, imgEl);
+      const a   = document.createElement('a');
       a.download = 'QR_' + codigo + '.png';
-      a.href = out.toDataURL('image/png');
+      a.href     = c.toDataURL('image/png');
       a.click();
     };
+    if (src.tagName === 'IMG') {
+      const img = new Image(); img.onload = () => render(img); img.src = src.src;
+    } else { render(src); }
+  };
 
-    if (srcImg.tagName === 'IMG') {
-      const img = new Image();
-      img.onload = () => drawQR(img);
-      img.src = srcImg.src;
-    } else {
-      drawQR(srcImg);
+  // Descarga todos los QR como PNGs individuales en un ZIP (simulado con descarga secuencial)
+  window.descargarLoteQR = async function() {
+    const q = (document.getElementById('qr-search')?.value || '').toLowerCase();
+    let items = inventory;
+    if (q) items = items.filter(i =>
+      i.codigo.toLowerCase().includes(q) ||
+      i.nombre.toLowerCase().includes(q) ||
+      (i.diferenciador||'').toLowerCase().includes(q)
+    );
+    if (!items.length) { alert('No hay artículos para descargar.'); return; }
+    // Generar canvas sin esperar a la UI — crear QR en offscreen
+    for (const item of items) {
+      await new Promise(resolve => {
+        const div = document.createElement('div');
+        div.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:80px;height:80px;';
+        document.body.appendChild(div);
+        new QRCode(div, {
+          text: item.codigo, width: 200, height: 200,
+          colorDark: '#1a1a2e', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        setTimeout(() => {
+          const src = div.querySelector('img') || div.querySelector('canvas');
+          const finish = (imgEl) => {
+            const c = buildEtiquetaCanvas(item.codigo, imgEl);
+            const a = document.createElement('a');
+            a.download = 'QR_' + item.codigo + '.png';
+            a.href = c.toDataURL('image/png');
+            a.click();
+            document.body.removeChild(div);
+            resolve();
+          };
+          if (src && src.tagName === 'IMG') {
+            const img = new Image(); img.onload = () => finish(img); img.src = src.src;
+          } else if (src) { finish(src); }
+          else { document.body.removeChild(div); resolve(); }
+        }, 300);
+      });
+      await new Promise(r => setTimeout(r, 120)); // pequeña pausa entre descargas
     }
   };
 
-  window.imprimirQRs = function() { window.print(); };
+  // Hoja de etiquetas para imprimir (página con etiquetas 40×15 mm)
+  window.imprimirQRs = function() {
+    const q = (document.getElementById('qr-search')?.value || '').toLowerCase();
+    let items = inventory;
+    if (q) items = items.filter(i =>
+      i.codigo.toLowerCase().includes(q) ||
+      i.nombre.toLowerCase().includes(q) ||
+      (i.diferenciador||'').toLowerCase().includes(q)
+    );
+    if (!items.length) { alert('No hay artículos para imprimir.'); return; }
+
+    // Generar etiquetas en canvas y construir página de impresión
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas QR CumpleGamer</title>
+    <style>
+      * { margin:0; padding:0; box-sizing:border-box; }
+      body { background:#fff; font-family:sans-serif; }
+      .page { padding:5mm; }
+      .grid { display:flex; flex-wrap:wrap; gap:2mm; }
+      .etiqueta { width:40mm; height:15mm; overflow:hidden; border:0.3px solid #ddd; }
+      .etiqueta img { width:100%; height:100%; object-fit:fill; }
+      @media print {
+        @page { size: A4; margin:5mm; }
+        .no-print { display:none; }
+        body { margin:0; }
+      }
+    </style></head><body>
+    <div class="no-print" style="padding:12px;background:#1a1a2e;color:#e2c94e;font-size:13px;margin-bottom:8px;">
+      Etiquetas 40×15 mm · ${items.length} artículos · 
+      <button onclick="window.print()" style="background:#e2c94e;color:#1a1a2e;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:600;">Imprimir</button>
+    </div>
+    <div class="page"><div class="grid" id="grid"></div></div>
+    <script>
+      const items = ${JSON.stringify(items.map(i=>({codigo:i.codigo,nombre:i.nombre,diferenciador:i.diferenciador||''})))};
+      const grid  = document.getElementById('grid');
+      items.forEach(item => {
+        const div = document.createElement('div'); div.className='etiqueta';
+        const img = document.createElement('img');
+        // Construir etiqueta en canvas
+        const qDiv = document.createElement('div');
+        qDiv.style.cssText='position:absolute;left:-9999px;';
+        document.body.appendChild(qDiv);
+        new QRCode(qDiv,{text:item.codigo,width:120,height:120,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:1});
+        setTimeout(()=>{
+          const src=qDiv.querySelector('img')||qDiv.querySelector('canvas');
+          const render=(s)=>{
+            const c=document.createElement('canvas');
+            c.width=320;c.height=120;
+            const ctx=c.getContext('2d');
+            ctx.fillStyle='#fff';ctx.fillRect(0,0,320,120);
+            ctx.drawImage(s,4,4,112,112);
+            ctx.fillStyle='#e2c94e';ctx.fillRect(120,8,2,104);
+            const tx=128,tw=184;
+            ctx.textAlign='left';ctx.textBaseline='middle';
+            ctx.font='bold 13px monospace';ctx.fillStyle='#888';
+            ctx.fillText(item.codigo,tx,28,tw);
+            const fs=item.nombre.length>16?16:19;
+            ctx.font='bold '+fs+'px sans-serif';ctx.fillStyle='#1a1a2e';
+            const words=item.nombre.split(' ');let l1='',l2='',tmp='';
+            for(const w of words){const t=tmp?tmp+' '+w:w;ctx.font='bold '+fs+'px sans-serif';if(ctx.measureText(t).width>tw&&tmp){l1=tmp;tmp=w;}else{tmp=t;}}
+            if(!l1){l1=tmp;}else{l2=tmp;}
+            if(l2){ctx.fillText(l1,tx,62,tw);ctx.fillText(l2,tx,84,tw);}else{ctx.fillText(l1,tx,68,tw);}
+            if(item.diferenciador){ctx.font='italic 13px sans-serif';ctx.fillStyle='#666';ctx.fillText(item.diferenciador.substring(0,22),tx,l2?104:94,tw);}
+            img.src=c.toDataURL('image/png');
+          };
+          if(src&&src.tagName==='IMG'){const i=new Image();i.onload=()=>render(i);i.src=src.src;}
+          else if(src){render(src);}
+          document.body.removeChild(qDiv);
+        },350);
+        div.appendChild(img);grid.appendChild(div);
+      });
+    <\/script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"><\/script>
+    </body></html>`);
+    win.document.close();
+  };
 
   const API_EVENTOS = 'https://script.google.com/macros/s/AKfycbydMA72LEOSrrc0mzjoWuJcsMALofkZ-iCuVffhzgyb9WDpRSPIpH5s5ToYydKbDD4J/exec';
 
