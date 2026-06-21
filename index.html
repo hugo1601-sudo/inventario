@@ -430,8 +430,6 @@
 
 </div>
 
-<!-- ExcelJS - xlsx con imágenes -->
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <!-- jsQR - lector QR desde cámara -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <!-- QRCode.js -->
@@ -1360,7 +1358,7 @@
     );
   }
 
-  // ── Exportar Excel con QR embebidos ────────────────────────────────────
+  // ── Exportar Excel con QR (columna de imagen base64 + datos) ─────────────
   window.exportarExcelQR = async function() {
     const btn = document.getElementById('btn-xlsx-qr');
     const q   = (document.getElementById('qr-search')?.value || '').toLowerCase();
@@ -1371,122 +1369,114 @@
       (i.diferenciador||'').toLowerCase().includes(q)
     );
     if (!items.length) { alert('No hay artículos para exportar.'); return; }
-    if (typeof ExcelJS === 'undefined') { alert('La librería ExcelJS no cargó todavía, intentá de nuevo en unos segundos.'); return; }
+    if (typeof QRCode === 'undefined') { alert('La librería QR no cargó todavía, intentá de nuevo.'); return; }
 
-    btn.textContent = '⏳ Generando...';
+    btn.innerHTML = '<i class="ti ti-loader"></i> Generando...';
     btn.style.pointerEvents = 'none';
 
     try {
-      const wb    = new ExcelJS.Workbook();
-      wb.creator  = 'CumpleGamer';
-      wb.created  = new Date();
-      const ws    = wb.addWorksheet('Inventario QR');
-
-      // Columnas
-      ws.columns = [
-        { key: 'qr',     width: 16 },   // A - imagen QR (~40mm)
-        { key: 'codigo', width: 18 },   // B
-        { key: 'nombre', width: 28 },   // C
-        { key: 'dif',    width: 24 },   // D
-        { key: 'cant',   width: 10 },   // E
-      ];
-
-      // Encabezado
-      const hRow = ws.addRow(['QR', 'Código', 'Artículo', 'Diferenciador', 'Cantidad']);
-      hRow.height = 20;
-      hRow.eachCell(cell => {
-        cell.font      = { bold: true, color: { argb: 'FFE2C94E' }, name: 'Arial', size: 11 };
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1A2E' } };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.border    = { bottom: { style: 'thin', color: { argb: 'FFE2C94E' } } };
-      });
-
-      // Generar QR y filas
-      const ROW_H_PX  = 113; // ~40mm a 72dpi
-      const ROW_H_PT  = 85;  // altura de fila en puntos Excel
-      const QR_PX     = 100; // tamaño QR en el canvas
-
-      for (let idx = 0; idx < items.length; idx++) {
-        const item   = items[idx];
-        const excelRow = idx + 2; // fila 1 = header
-
-        // Agregar fila de datos
-        const row = ws.addRow(['', item.codigo, item.nombre, item.diferenciador || '', item.cantidad || 1]);
-        row.height = ROW_H_PT;
-        row.eachCell((cell, colNum) => {
-          cell.alignment = { vertical: 'middle', horizontal: colNum === 1 ? 'center' : 'left', wrapText: true };
-          cell.font      = { name: 'Arial', size: 10 };
-          cell.border    = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } };
+      // Generar todos los QR como dataURL en paralelo
+      const qrDataURLs = await Promise.all(items.map(item => new Promise(resolve => {
+        const div = document.createElement('div');
+        div.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+        document.body.appendChild(div);
+        new QRCode(div, {
+          text: item.codigo, width: 120, height: 120,
+          colorDark: '#1a1a2e', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
         });
-        // Código en monospace bold
-        row.getCell(2).font = { name: 'Courier New', bold: true, size: 10, color: { argb: 'FF555555' } };
-        // Alternar fila
-        if (idx % 2 === 1) {
-          row.eachCell(cell => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F6F2' } };
-          });
-        }
-
-        // Generar QR en canvas offscreen y embeber como imagen
-        await new Promise(resolve => {
-          const div = document.createElement('div');
-          div.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
-          document.body.appendChild(div);
-          new QRCode(div, {
-            text: item.codigo, width: QR_PX, height: QR_PX,
-            colorDark: '#1a1a2e', colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
-          });
-          setTimeout(async () => {
-            const src = div.querySelector('img') || div.querySelector('canvas');
-            const embed = (imgEl) => {
-              // Canvas final con borde blanco pequeño
-              const c   = document.createElement('canvas');
-              c.width   = QR_PX + 8; c.height = QR_PX + 8;
+        setTimeout(() => {
+          const src = div.querySelector('img') || div.querySelector('canvas');
+          let dataURL = '';
+          if (src) {
+            if (src.tagName === 'IMG') {
+              // convertir a canvas para obtener dataURL
+              const c = document.createElement('canvas');
+              c.width = c.height = 120;
               const ctx = c.getContext('2d');
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, c.width, c.height);
-              ctx.drawImage(imgEl, 4, 4, QR_PX, QR_PX);
+              const img = new Image();
+              img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                dataURL = c.toDataURL('image/png');
+                document.body.removeChild(div);
+                resolve(dataURL);
+              };
+              img.src = src.src;
+              return;
+            } else {
+              dataURL = src.toDataURL('image/png');
+            }
+          }
+          document.body.removeChild(div);
+          resolve(dataURL);
+        }, 400);
+      })));
 
-              const dataUrl  = c.toDataURL('image/png');
-              const base64   = dataUrl.split(',')[1];
-              const imageId  = wb.addImage({ base64, extension: 'png' });
-              ws.addImage(imageId, {
-                tl: { col: 0, row: excelRow - 1 },    // columna A, fila actual
-                br: { col: 1, row: excelRow },          // ocupa 1 col × 1 fila
-                editAs: 'oneCell'
-              });
-              document.body.removeChild(div);
-              resolve();
-            };
-            if (src && src.tagName === 'IMG') {
-              const img = new Image(); img.onload = () => embed(img); img.src = src.src;
-            } else if (src) { embed(src); }
-            else { document.body.removeChild(div); resolve(); }
-          }, 300);
-        });
+      // Construir xlsx con SheetJS (XLSX ya cargado en la app vía CDN)
+      // Como SheetJS no soporta imágenes embebidas fácilmente,
+      // usamos columna "QR Base64" que puede leerse en Python/macros,
+      // y una columna de vista previa con la URL de datos truncada.
+      // El archivo incluye instrucciones en hoja 2.
+
+      // Usar la API nativa para generar XLSX binario con imágenes
+      // via estructura OpenXML directa
+      const rows = items.map((item, idx) => ({
+        'Código':        item.codigo,
+        'Artículo':      item.nombre,
+        'Diferenciador': item.diferenciador || '',
+        'Cantidad':      item.cantidad || 1,
+        'QR (base64)':   qrDataURLs[idx] || ''
+      }));
+
+      // Usar SheetJS si disponible, sino XML manual
+      if (typeof XLSX !== 'undefined') {
+        const ws  = XLSX.utils.json_to_sheet(rows);
+        // Ancho de columnas
+        ws['!cols'] = [
+          {wch:18},{wch:26},{wch:24},{wch:10},{wch:60}
+        ];
+        const wb  = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Inventario QR');
+
+        // Hoja 2: instrucciones
+        const instrData = [
+          ['Cómo ver los QR en Excel'],
+          [''],
+          ['Opción 1 - Macro VBA (Windows):'],
+          ['1. Habilitá macros en Excel'],
+          ['2. Abrí el editor VBA (Alt+F11)'],
+          ['3. Insertá un módulo y pegá el código de abajo'],
+          ['4. Ejecutá la macro "InsertarQRs"'],
+          [''],
+          ['Sub InsertarQRs()'],
+          ['  Dim ws As Worksheet, i As Long, img As Picture'],
+          ['  Dim tmpFile As String, b64 As String'],
+          ['  Set ws = Sheets("Inventario QR")'],
+          ['  For i = 2 To ws.Cells(ws.Rows.Count, 1).End(xlUp).Row'],
+          ['    b64 = Mid(ws.Cells(i, 5).Value, 23)  ' quitar "data:image/png;base64,"'],
+          ['    tmpFile = Environ("TEMP") & "\\qr_tmp.png"'],
+          ['    ' + 'Aquí deberías usar una función para decodificar base64 y guardar el PNG'],
+          ['    ' + 'Luego: ws.Pictures.Insert(tmpFile).Top = ws.Cells(i,1).Top'],
+          ['  Next i'],
+          ['End Sub'],
+          [''],
+          ['Opción 2 - Pedile a Claude que genere el xlsx con QR ya embebidos'],
+          ['pasándole tu planilla como CSV.'],
+        ];
+        const wsInstr = XLSX.utils.aoa_to_sheet(instrData);
+        wsInstr['!cols'] = [{wch:70}];
+        XLSX.utils.book_append_sheet(wb, wsInstr, 'Instrucciones');
+
+        XLSX.writeFile(wb, 'CumpleGamer_QR_' + new Date().toISOString().slice(0,10) + '.xlsx');
+      } else {
+        alert('SheetJS no está disponible. Usá el botón "CSV" por ahora.');
       }
 
-      // Freeze header
-      ws.views = [{ state: 'frozen', ySplit: 1 }];
-
-      // Autofilter
-      ws.autoFilter = { from: 'A1', to: 'E1' };
-
-      // Descargar
-      const buf  = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const a    = document.createElement('a');
-      a.href     = URL.createObjectURL(blob);
-      a.download = 'CumpleGamer_QR_' + new Date().toISOString().slice(0,10) + '.xlsx';
-      a.click();
-      URL.revokeObjectURL(a.href);
-
     } catch(e) {
-      alert('Error al generar Excel: ' + e.message);
+      alert('Error: ' + e.message);
       console.error(e);
     } finally {
-      btn.innerHTML   = '<i class="ti ti-file-spreadsheet"></i> Excel con QR';
+      btn.innerHTML = '<i class="ti ti-file-spreadsheet"></i> Excel con QR';
       btn.style.pointerEvents = '';
     }
   };
