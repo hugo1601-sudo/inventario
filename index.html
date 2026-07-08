@@ -975,21 +975,87 @@
   };
 
   window.descargarQR = function(codigo) {
-    const src = getQRSrc(codigo);
-    if (!src) return;
-    const render = (imgEl) => {
-      const c   = buildEtiquetaCanvas(codigo, imgEl);
-      const a   = document.createElement('a');
-      a.download = 'QR_' + codigo + '.png';
-      a.href     = c.toDataURL('image/png');
-      a.click();
-    };
-    if (src.tagName === 'IMG') {
-      const img = new Image(); img.onload = () => render(img); img.src = src.src;
-    } else { render(src); }
+    const item = inventory.find(i => i.codigo === codigo);
+    gerarEtiquetaCanvas(codigo, item, (canvas) => {
+      const dataURL = canvas.toDataURL('image/png');
+      // Android: abrir en nueva pestaña funciona siempre; el usuario la guarda con toque largo
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>QR ${esc(codigo)}</title>
+          <style>
+            body{margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;}
+            img{max-width:95vw;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+            p{color:#e2c94e;font-family:sans-serif;font-size:13px;text-align:center;padding:0 16px;}
+          </style></head><body>
+          <img src="${dataURL}" alt="QR ${esc(codigo)}">
+          <p>Mantené presionada la imagen para guardarla · ${esc(codigo)}</p>
+          </body></html>`);
+        win.document.close();
+      } else {
+        // fallback si el navegador bloqueó el popup
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = 'QR_' + codigo + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
   };
 
-  // Descarga todos los QR como PNGs individuales en un ZIP (simulado con descarga secuencial)
+  // Genera el canvas de etiqueta 40×15mm directamente con QR dibujado en canvas
+  // sin depender de imágenes DOM (evita problemas CORS en Android)
+  function gerarEtiquetaCanvas(codigo, item, callback) {
+    // Generar QR en canvas offscreen usando qrcodejs2 pero extrayendo el canvas nativo
+    const offDiv = document.createElement('div');
+    offDiv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
+    document.body.appendChild(offDiv);
+
+    new QRCode(offDiv, {
+      text: codigo, width: 200, height: 200,
+      colorDark: '#1a1a2e', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    setTimeout(() => {
+      // qrcodejs2 crea un <canvas> (en navegadores modernos) o un <img>
+      const qrCanvas = offDiv.querySelector('canvas');
+      const qrImg   = offDiv.querySelector('img');
+
+      const buildCanvas = (qrSrc) => {
+        const etiqueta = buildEtiquetaCanvas(codigo, qrSrc);
+        document.body.removeChild(offDiv);
+        callback(etiqueta);
+      };
+
+      if (qrCanvas) {
+        buildCanvas(qrCanvas);
+      } else if (qrImg) {
+        // Redibujar en canvas para evitar restricción CORS
+        const tmpC = document.createElement('canvas');
+        tmpC.width = tmpC.height = 200;
+        const tmpCtx = tmpC.getContext('2d');
+        const tmpImg = new Image();
+        tmpImg.crossOrigin = 'anonymous';
+        tmpImg.onload = () => { tmpCtx.drawImage(tmpImg, 0, 0); buildCanvas(tmpC); };
+        tmpImg.onerror = () => {
+          // último recurso: dibujar QR directamente sin imagen
+          tmpCtx.fillStyle = '#fff';
+          tmpCtx.fillRect(0,0,200,200);
+          document.body.removeChild(offDiv);
+          callback(buildEtiquetaCanvas(codigo, tmpC));
+        };
+        tmpImg.src = qrImg.src;
+      } else {
+        document.body.removeChild(offDiv);
+        alert('No se pudo generar el QR. Recargá la página e intentá de nuevo.');
+      }
+    }, 450);
+  }
+
+  // Descarga lote — abre página con todas las etiquetas para guardar desde mobile
   window.descargarLoteQR = async function() {
     const q = (document.getElementById('qr-search')?.value || '').toLowerCase();
     let items = inventory;
@@ -999,36 +1065,46 @@
       (i.diferenciador||'').toLowerCase().includes(q)
     );
     if (!items.length) { alert('No hay artículos para descargar.'); return; }
-    // Generar canvas sin esperar a la UI — crear QR en offscreen
+
+    const btn = document.querySelector('[onclick="descargarLoteQR()"]');
+    if (btn) { btn.textContent = 'Generando...'; btn.style.pointerEvents = 'none'; }
+
+    // Generar todos los canvas en secuencia y acumular dataURLs
+    const results = [];
     for (const item of items) {
       await new Promise(resolve => {
-        const div = document.createElement('div');
-        div.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:80px;height:80px;';
-        document.body.appendChild(div);
-        new QRCode(div, {
-          text: item.codigo, width: 200, height: 200,
-          colorDark: '#1a1a2e', colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M
+        gerarEtiquetaCanvas(item.codigo, item, (canvas) => {
+          results.push({ codigo: item.codigo, nombre: item.nombre, dif: item.diferenciador||'', url: canvas.toDataURL('image/png') });
+          resolve();
         });
-        setTimeout(() => {
-          const src = div.querySelector('img') || div.querySelector('canvas');
-          const finish = (imgEl) => {
-            const c = buildEtiquetaCanvas(item.codigo, imgEl);
-            const a = document.createElement('a');
-            a.download = 'QR_' + item.codigo + '.png';
-            a.href = c.toDataURL('image/png');
-            a.click();
-            document.body.removeChild(div);
-            resolve();
-          };
-          if (src && src.tagName === 'IMG') {
-            const img = new Image(); img.onload = () => finish(img); img.src = src.src;
-          } else if (src) { finish(src); }
-          else { document.body.removeChild(div); resolve(); }
-        }, 300);
       });
-      await new Promise(r => setTimeout(r, 120)); // pequeña pausa entre descargas
     }
+
+    if (btn) { btn.innerHTML = '<i class="ti ti-download"></i> Lote PNG'; btn.style.pointerEvents = ''; }
+
+    // Abrir página con todas las imágenes — el usuario las guarda una por una o usa "guardar página"
+    const win = window.open('', '_blank');
+    if (!win) { alert('El navegador bloqueó la ventana emergente. Permitila para esta página.'); return; }
+    const imgsHTML = results.map(r => `
+      <div style="break-inside:avoid;text-align:center;margin-bottom:12px;">
+        <img src="${r.url}" style="width:320px;max-width:95vw;border-radius:6px;display:block;margin:0 auto 4px;">
+        <div style="font-size:11px;color:#888;font-family:monospace;">${esc(r.codigo)} · ${esc(r.nombre)}</div>
+      </div>`).join('');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>QR Inventario CumpleGamer</title>
+      <style>
+        body{margin:0;padding:16px;background:#111;font-family:sans-serif;}
+        h2{color:#e2c94e;font-size:15px;margin-bottom:16px;text-align:center;}
+        p{color:#888;font-size:12px;text-align:center;margin-bottom:20px;}
+        @media print{body{background:#fff;} h2,p{display:none;}}
+      </style></head><body>
+      <h2>🎮 CumpleGamer — ${results.length} etiquetas QR · 40×15mm</h2>
+      <p>Mantené presionada cada imagen para guardarla · O usá Imprimir para imprimirlas todas</p>
+      <button onclick="window.print()" style="display:block;margin:0 auto 20px;padding:8px 20px;background:#e2c94e;color:#1a1a2e;border:none;border-radius:6px;font-weight:600;cursor:pointer;">🖨️ Imprimir todo</button>
+      ${imgsHTML}
+      </body></html>`);
+    win.document.close();
   };
 
   // Hoja de etiquetas para imprimir (página con etiquetas 40×15 mm)
